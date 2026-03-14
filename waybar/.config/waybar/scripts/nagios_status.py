@@ -1,4 +1,32 @@
 #!/usr/bin/env python3
+"""
+Nagios Waybar status script
+
+Reads Nagios service status and outputs Waybar-compatible JSON.
+
+Config file location:
+    ~/.ssh/nagios-waybar.ini
+
+Example config file:
+
+[nagios]
+# URL returning the service list
+status_url = https://nagios.example.com/nagios/cgi-bin/statusjson.cgi?query=servicelist
+
+# Base Nagios web URL (no trailing slash)
+base_url = https://nagios.example.com/nagios
+
+# Optional authentication
+username = nagiosuser
+password = nagiospass
+
+# Verify SSL certificates
+verify_ssl = true
+
+# Timeout in seconds.
+# Used as the maximum time budget for plugin_output lookups.
+timeout = 5
+"""
 
 import configparser
 import json
@@ -8,18 +36,18 @@ from pathlib import Path
 import requests
 
 CONFIG_FILE = Path.home() / ".ssh" / "nagios-waybar.ini"
-MAX_PLUGIN_OUTPUT_TIME = 5.0
 
 
 def load_config():
     config = configparser.ConfigParser()
+
     if not CONFIG_FILE.exists():
         raise FileNotFoundError(f"Config file not found: {CONFIG_FILE}")
 
     config.read(CONFIG_FILE)
 
     if "nagios" not in config:
-        raise KeyError("Missing [nagios] section in config file")
+        raise KeyError("Missing [nagios] section in config")
 
     section = config["nagios"]
 
@@ -31,9 +59,9 @@ def load_config():
     timeout = section.getint("timeout", fallback=10)
 
     if not status_url:
-        raise ValueError("status_url is required in config")
+        raise ValueError("status_url must be set in config")
     if not base_url:
-        raise ValueError("base_url is required in config")
+        raise ValueError("base_url must be set in config")
 
     return {
         "status_url": status_url,
@@ -58,6 +86,7 @@ def get_status(cfg):
         verify=cfg["verify_ssl"],
         timeout=cfg["timeout"],
     )
+
     r.raise_for_status()
     return r.json()
 
@@ -74,8 +103,10 @@ def get_plugin_output(cfg, hostname, service):
         verify=cfg["verify_ssl"],
         timeout=cfg["timeout"],
     )
+
     r.raise_for_status()
     data = r.json()
+
     return data.get("data", {}).get("service", {}).get("plugin_output", "")
 
 
@@ -90,6 +121,7 @@ def parse_services(cfg, data, plugin_output_deadline):
             continue
 
         for service, state in host_services.items():
+
             if state == 4:
                 status = "WARNING"
             elif state == 16:
@@ -101,7 +133,6 @@ def parse_services(cfg, data, plugin_output_deadline):
 
             plugin_output = ""
 
-            # Only try plugin_output lookups while still inside the deadline.
             if time.monotonic() < plugin_output_deadline:
                 try:
                     plugin_output = get_plugin_output(cfg, host, service)
@@ -109,14 +140,13 @@ def parse_services(cfg, data, plugin_output_deadline):
                     plugin_output = "[plugin output unavailable]"
             else:
                 skipped_plugin_output = True
-                plugin_output = "[plugin output skipped: time limit exceeded]"
 
             problems.append((status, host, service, plugin_output))
 
     return problems, skipped_plugin_output
 
 
-def build_waybar_json(problems, skipped_plugin_output=False):
+def build_waybar_json(problems, skipped_plugin_output):
     critical_count = sum(1 for p in problems if p[0] == "CRITICAL")
     warning_count = sum(1 for p in problems if p[0] == "WARNING")
     unknown_count = sum(1 for p in problems if p[0] == "UNKNOWN")
@@ -137,10 +167,13 @@ def build_waybar_json(problems, skipped_plugin_output=False):
         tooltip = "No service problems"
     else:
         text = "  ".join(parts)
+
         tooltip_lines = []
 
         if skipped_plugin_output:
-            tooltip_lines.append("[Some plugin outputs were skipped because the 10s limit was exceeded]")
+            tooltip_lines.append(
+                "[Some plugin outputs were skipped because the timeout limit was exceeded]"
+            )
 
         for status, host, check, output in problems:
             if output:
@@ -168,14 +201,16 @@ def build_error_json(message):
 def main():
     try:
         cfg = load_config()
+
         data = get_status(cfg)
 
         start_time = time.monotonic()
-        plugin_output_deadline = start_time + MAX_PLUGIN_OUTPUT_TIME
+        plugin_output_deadline = start_time + cfg["timeout"]
 
-        problems, skipped_plugin_output = parse_services(cfg, data, plugin_output_deadline)
+        problems, skipped = parse_services(cfg, data, plugin_output_deadline)
 
-        print(json.dumps(build_waybar_json(problems, skipped_plugin_output)))
+        print(json.dumps(build_waybar_json(problems, skipped)))
+
     except Exception as e:
         print(json.dumps(build_error_json(f"Nagios script error: {e}")))
 
