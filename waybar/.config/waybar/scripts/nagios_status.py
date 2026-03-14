@@ -23,19 +23,31 @@ password = nagiospass
 # Verify SSL certificates
 verify_ssl = true
 
-# Timeout in seconds.
-# Used as the maximum time budget for plugin_output lookups.
-timeout = 5
+# Total timeout budget in seconds.
+# This is used:
+#   1. as the timeout for the initial status request
+#   2. as the total time budget for plugin_output lookups
+timeout = 10
+
+# Number of alerts to fetch plugin_output for at once
+batch_size = 5
 """
 
 import configparser
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import requests
 
 CONFIG_FILE = Path.home() / ".ssh" / "nagios-waybar.ini"
+
+STATUS_ORDER = {
+    "CRITICAL": 0,
+    "WARNING": 1,
+    "UNKNOWN": 2,
+}
 
 
 def load_config():
@@ -57,11 +69,16 @@ def load_config():
     password = section.get("password", "").strip() or None
     verify_ssl = section.getboolean("verify_ssl", fallback=True)
     timeout = section.getint("timeout", fallback=10)
+    batch_size = section.getint("batch_size", fallback=5)
 
     if not status_url:
         raise ValueError("status_url must be set in config")
     if not base_url:
         raise ValueError("base_url must be set in config")
+    if timeout <= 0:
+        raise ValueError("timeout must be > 0")
+    if batch_size <= 0:
+        raise ValueError("batch_size must be > 0")
 
     return {
         "status_url": status_url,
@@ -70,6 +87,7 @@ def load_config():
         "password": password,
         "verify_ssl": verify_ssl,
         "timeout": timeout,
+        "batch_size": batch_size,
     }
 
 
@@ -86,12 +104,11 @@ def get_status(cfg):
         verify=cfg["verify_ssl"],
         timeout=cfg["timeout"],
     )
-
     r.raise_for_status()
     return r.json()
 
 
-def get_plugin_output(cfg, hostname, service):
+def get_plugin_output(cfg, hostname, service, request_timeout):
     r = requests.get(
         f'{cfg["base_url"]}/cgi-bin/statusjson.cgi',
         params={
@@ -101,18 +118,20 @@ def get_plugin_output(cfg, hostname, service):
         },
         auth=get_auth(cfg),
         verify=cfg["verify_ssl"],
-        timeout=cfg["timeout"],
+        timeout=request_timeout,
     )
-
     r.raise_for_status()
     data = r.json()
-
     return data.get("data", {}).get("service", {}).get("plugin_output", "")
 
 
-def parse_services(cfg, data, plugin_output_deadline):
+def chunked(seq, size):
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
+def parse_services(data):
     problems = []
-    skipped_plugin_output = False
 
     hosts = data.get("data", {}).get("servicelist", {})
 
@@ -121,32 +140,74 @@ def parse_services(cfg, data, plugin_output_deadline):
             continue
 
         for service, state in host_services.items():
-
-            if state == 4:
-                status = "WARNING"
-            elif state == 16:
+            if state == 16:
                 status = "CRITICAL"
+            elif state == 4:
+                status = "WARNING"
             elif state == 8:
                 status = "UNKNOWN"
             else:
                 continue
 
-            plugin_output = ""
+            problems.append((status, host, service, ""))
 
-            if time.monotonic() < plugin_output_deadline:
+    return problems
+
+
+def enrich_plugin_outputs_batched(cfg, problems, deadline):
+    """
+    Fetch plugin outputs in batches. Still one request per alert, but only a limited
+    number are in flight at once. Once the deadline is exceeded, stop fetching outputs
+    and return the remaining alerts without plugin output.
+    """
+    enriched = []
+    skipped_plugin_output = False
+
+    for batch in chunked(problems, cfg["batch_size"]):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            skipped_plugin_output = True
+            enriched.extend(batch)
+            continue
+
+        # Keep each request within the remaining global budget.
+        request_timeout = max(1, min(cfg["timeout"], int(remaining)))
+
+        batch_results = {(status, host, service): "" for status, host, service, _ in batch}
+
+        with ThreadPoolExecutor(max_workers=len(batch)) as executor:
+            future_map = {
+                executor.submit(get_plugin_output, cfg, host, service, request_timeout): (status, host, service)
+                for status, host, service, _ in batch
+            }
+
+            for future in as_completed(future_map):
+                status, host, service = future_map[future]
                 try:
-                    plugin_output = get_plugin_output(cfg, host, service)
+                    batch_results[(status, host, service)] = future.result()
                 except Exception:
-                    plugin_output = "[plugin output unavailable]"
-            else:
-                skipped_plugin_output = True
+                    batch_results[(status, host, service)] = "[plugin output unavailable]"
 
-            problems.append((status, host, service, plugin_output))
+        for status, host, service, _ in batch:
+            enriched.append((status, host, service, batch_results[(status, host, service)]))
 
-    return problems, skipped_plugin_output
+    return enriched, skipped_plugin_output
+
+
+def sort_problems(problems):
+    return sorted(
+        problems,
+        key=lambda p: (
+            STATUS_ORDER.get(p[0], 99),
+            p[1].lower(),
+            p[2].lower(),
+        ),
+    )
 
 
 def build_waybar_json(problems, skipped_plugin_output):
+    problems = sort_problems(problems)
+
     critical_count = sum(1 for p in problems if p[0] == "CRITICAL")
     warning_count = sum(1 for p in problems if p[0] == "WARNING")
     unknown_count = sum(1 for p in problems if p[0] == "UNKNOWN")
@@ -167,7 +228,6 @@ def build_waybar_json(problems, skipped_plugin_output):
         tooltip = "No service problems"
     else:
         text = "  ".join(parts)
-
         tooltip_lines = []
 
         if skipped_plugin_output:
@@ -203,14 +263,12 @@ def main():
         cfg = load_config()
 
         data = get_status(cfg)
+        problems = parse_services(data)
 
-        start_time = time.monotonic()
-        plugin_output_deadline = start_time + cfg["timeout"]
-
-        problems, skipped = parse_services(cfg, data, plugin_output_deadline)
+        deadline = time.monotonic() + cfg["timeout"]
+        problems, skipped = enrich_plugin_outputs_batched(cfg, problems, deadline)
 
         print(json.dumps(build_waybar_json(problems, skipped)))
-
     except Exception as e:
         print(json.dumps(build_error_json(f"Nagios script error: {e}")))
 
