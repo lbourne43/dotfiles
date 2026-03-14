@@ -1,0 +1,100 @@
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "UbuntuMono Nerd Font", "JetBrainsMono Nerd Font", monospace;
+    font-size: 15px;
+    min-height: 0;
+}
+
+window#waybar {
+    background: rgba(30, 30, 46, 0.92); /* Catppuccin Mocha base */
+    color: #cdd6f4; /* text */
+}
+
+#workspaces,
+#window,
+#pulseaudio,
+#clock,
+#custom-power {
+    margin: 6px 0;
+    padding: 0 12px;
+    border-radius: 12px;
+    background: #313244; /* surface0 */
+    color: #cdd6f4;
+}
+
+#workspaces {
+    margin-left: 8px;
+    padding: 0 6px;
+}
+
+#workspaces button {
+    padding: 0 10px;
+    margin: 4px 3px;
+    border-radius: 10px;
+    background: transparent;
+    color: #a6adc8; /* subtext0 */
+    transition: all 0.2s ease;
+}
+
+#workspaces button:hover {
+    background: #45475a; /* surface1 */
+    color: #cdd6f4;
+}
+
+#workspaces button.active {
+    background: #94e2d5; /* blue */
+    color: #1e1e2e; /* base */
+}
+
+#workspaces button.urgent {
+    background: #f38ba8; /* red */
+    color: #1e1e2e;
+}
+
+#window {
+    color: #94e2d5; /* lavender */
+    font-weight: 600;
+}
+
+#pulseaudio {
+    color: #a6e3a1; /* green */
+}
+
+#pulseaudio.muted {
+    color: #f38ba8; /* red */
+}
+
+#clock {
+    color: #f9e2af; /* yellow */
+}
+
+#custom-power {
+    margin-right: 8px;
+    color: #f38ba8; /* red */
+    font-size: 16px;
+    padding: 0 14px;
+}
+
+#custom-power:hover {
+    background: #f38ba8;
+    color: #1e1e2e;
+}
+
+menu {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 12px;
+    padding: 6px;
+    border: 1px solid #45475a;
+}
+
+menuitem {
+    border-radius: 8px;
+    padding: 6px 12px;
+}
+
+menuitem:hover {
+    background: #313244;
+    color: #94e2d5;
+}

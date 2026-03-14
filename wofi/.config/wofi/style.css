@@ -1,0 +1,60 @@
+* {
+    font-family: "UbuntuMono Nerd Font";
+    font-size: 14px;
+}
+
+window {
+    margin: 0px;
+    border: 2px solid #94e2d5;
+    border-radius: 12px;
+    background-color: #1e1e2e;
+}
+
+#input {
+    margin: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    color: #cdd6f4;
+    background-color: #313244;
+}
+
+#inner-box {
+    margin: 5px;
+    border: none;
+    background-color: #1e1e2e;
+}
+
+#outer-box {
+    margin: 5px;
+    border: none;
+    background-color: #1e1e2e;
+}
+
+#scroll {
+    margin: 5px;
+    border: none;
+}
+
+#entry {
+    padding: 6px;
+    border-radius: 6px;
+}
+
+#entry:hover {
+    background-color: #313244;
+}
+
+#entry:selected {
+    background-color: #94e2d5;
+}
+
+#entry:selected #text {
+    color: #1e1e2e;
+    font-weight: bold;
+}
+
+#text {
+    margin: 5px;
+    color: #cdd6f4;
+}

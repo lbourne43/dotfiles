@@ -1,0 +1,20 @@
+[General]
+ShowFullPath=true
+Version=202
+ViewPropsTimestamp=2026,3,12,18,45,35.826
+
+[Icons]
+UseCustomColors=false
+
+[KFileDialog Settings]
+Places Icons Auto-resize=false
+Places Icons Static Size=22
+
+[MainWindow]
+MenuBar=Disabled
+
+[PreviewSettings]
+Plugins=appimagethumbnail,audiothumbnail,glycin-heif,blenderthumbnail,papers,evince,comicbookthumbnail,cursorthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,imagethumbnail,glycin-image-rs,jpegthumbnail,glycin-jxl,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,mobithumbnail,opendocumentthumbnail,gsthumbnail,rawthumbnail,glycin-svg,svgthumbnail,gnome-font-viewer,ffmpegthumbs,gsf-office
+
+[UiSettings]
+ColorScheme=KvantumDark

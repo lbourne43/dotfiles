@@ -1,0 +1,86 @@
+add_newline = false
+palette = "catppuccin_teal"
+
+format = """
+$username\
+$hostname\
+$directory\
+$cmd_duration\
+$character
+"""
+
+[palettes.catppuccin_teal]
+base = "#1e1e2e"
+mantle = "#181825"
+surface0 = "#313244"
+surface1 = "#45475a"
+surface2 = "#585b70"
+text = "#cdd6f4"
+subtext0 = "#a6adc8"
+subtext1 = "#bac2de"
+teal = "#94e2d5"
+green = "#a6e3a1"
+yellow = "#f9e2af"
+red = "#f38ba8"
+lavender = "#b4befe"
+peach = "#fab387"
+
+[username]
+style_user = "teal bold"
+style_root = "red bold"
+format = "[$user]($style)"
+show_always = true
+
+[hostname]
+ssh_only = false
+style = "teal bold"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "lavender"
+truncation_length = 3
+truncate_to_repo = true
+format = "[󰉋 $path]($style) "
+
+[git_branch]
+symbol = " "
+style = "green"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "red"
+format = "([$all_status$ahead_behind]($style) )"
+
+[cmd_duration]
+min_time = 1500
+style = "yellow"
+format = "[󰔛 $duration]($style) "
+
+[python]
+symbol = " "
+style = "green"
+format = "[${symbol}${version}]($style) "
+
+[nodejs]
+symbol = " "
+style = "teal"
+format = "[${symbol}${version}]($style) "
+
+[rust]
+symbol = " "
+style = "peach"
+format = "[${symbol}${version}]($style) "
+
+[golang]
+symbol = " "
+style = "teal"
+format = "[${symbol}${version}]($style) "
+
+[lua]
+symbol = " "
+style = "lavender"
+format = "[${symbol}${version}]($style) "
+
+[character]
+success_symbol = "[❯](bold teal)"
+error_symbol = "[❯](bold red)"
