@@ -98,3 +98,33 @@ menuitem:hover {
     background: #313244;
     color: #94e2d5;
 }
+
+#custom-nagios {
+    padding: 0 12px;
+    border-radius: 12px;
+    background: #313244;
+    color: #cdd6f4;
+    margin: 6px 0;
+}
+
+#custom-nagios {
+    padding: 0 10px;
+}
+
+#custom-nagios .nagios-critical {
+    color: #f38ba8;
+    font-weight: bold;
+}
+
+#custom-nagios .nagios-warning {
+    color: #f9e2af;
+}
+
+#custom-nagios .nagios-unknown {
+    color: #94e2d5;
+}
+
+#custom-nagios .nagios-ok {
+    color: #a6e3a1;
+}
+

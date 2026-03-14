@@ -6,7 +6,7 @@
 
   "modules-left": ["hyprland/workspaces"],
   "modules-center": ["hyprland/window"],
-  "modules-right": ["pulseaudio", "clock", "custom/power"],
+  "modules-right": ["custom/nagios", "pulseaudio", "clock", "custom/power"],
 
   "hyprland/workspaces": {
     "disable-scroll": true,
@@ -48,5 +48,13 @@
       "reboot": "systemctl reboot",
       "shutdown": "systemctl poweroff"
     }
+  },
+  "custom/nagios": {
+    "exec": "~/.config/waybar/scripts/nagios_status.py",
+    "return-type": "json",
+    "interval": 60,
+    "format": "{}",
+    "tooltip": true,
+    "escape": false
   }
 }
