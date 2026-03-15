@@ -7,6 +7,9 @@ Reads Nagios service status and outputs Waybar-compatible JSON.
 Config file location:
     ~/.ssh/nagios-waybar.ini
 
+Save the password into your keyring:
+# secret-tool store --label="waybar_nagios_pass" app waybar_nagios key pass
+
 Example config file:
 
 [nagios]
@@ -18,7 +21,6 @@ base_url = https://nagios.example.com/nagios
 
 # Optional authentication
 username = nagiosuser
-password = nagiospass
 
 # Verify SSL certificates
 verify_ssl = true
@@ -38,6 +40,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+import subprocess
 
 import requests
 
@@ -49,6 +52,12 @@ STATUS_ORDER = {
     "UNKNOWN": 2,
 }
 
+def get_secret(*attrs: str) -> str:
+    cmd = ["secret-tool", "lookup", *attrs]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "secret-tool lookup failed")
+    return result.stdout.rstrip("\n")
 
 def load_config():
     config = configparser.ConfigParser()
@@ -259,8 +268,15 @@ def build_error_json(message):
 
 
 def main():
+    secret = False
+    try:
+        secret = get_secret("app", "waybar_nagios", "key", "pass")
+    except:
+        pass
     try:
         cfg = load_config()
+        if secret:
+            cfg["password"] = secret
 
         data = get_status(cfg)
         problems = parse_services(data)
