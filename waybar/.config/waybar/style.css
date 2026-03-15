@@ -128,3 +128,13 @@ menuitem:hover {
     color: #a6e3a1;
 }
 
+#idle_inhibitor {
+    padding: 0 12px;
+}
+
+#network, #tray {
+    padding: 0 12px;
+    border-radius: 12px;
+    background: #313244;
+    margin: 6px 0;
+}

@@ -4,9 +4,9 @@
   "height": 34,
   "spacing": 6,
 
-  "modules-left": ["hyprland/workspaces"],
+  "modules-left": ["hyprland/workspaces", "tray", "custom/nagios"],
   "modules-center": ["hyprland/window"],
-  "modules-right": ["custom/nagios", "pulseaudio", "clock", "custom/power"],
+  "modules-right": ["idle_inhibitor", "network", "pulseaudio", "clock", "custom/power"],
 
   "hyprland/workspaces": {
     "disable-scroll": true,
@@ -37,6 +37,13 @@
     "format": "󰥔  {:%H:%M %d/%m}",
     "tooltip-format": "󰃭  {:%A, %d %B %Y}"
   },
+  "idle_inhibitor": { 
+    "format": "{icon}", 
+    "format-icons": { 
+      "activated": "\uf06e", 
+      "deactivated": "\uf070" 
+    } 
+  },
   "custom/power": {
     "format": "⏻",
     "tooltip": false,
@@ -56,5 +63,22 @@
     "format": "{}",
     "tooltip": true,
     "escape": false
+  },
+  "tray": {
+    "icon-size": 20,
+    "spacing": 10
+  },
+  "network": {
+  	"interface": "wlan0",
+  	"format": "{ifname}",
+  	"format-wifi": "({signalStrength}%) ",
+  	"format-ethernet": "{ifname} ",
+  	"format-disconnected": "", //An empty format will hide the module.
+  	"format-disconnected": "",
+  	"tooltip-format": "{ifname}",
+  	"tooltip-format-wifi": "{essid} ({signalStrength}%) ",
+  	"tooltip-format-ethernet": "{ifname} ",
+  	"tooltip-format-disconnected": "Disconnected",
+  	"max-length": 50
   }
 }
