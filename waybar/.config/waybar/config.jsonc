@@ -34,7 +34,7 @@
 
   "clock": {
     "interval": 1,
-    "format": "󰥔  {:%H:%M}",
+    "format": "󰥔  {:%H:%M %d/%m}",
     "tooltip-format": "󰃭  {:%A, %d %B %Y}"
   },
   "custom/power": {
